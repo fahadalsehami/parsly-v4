@@ -1,0 +1,24 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "parsly-v4"
+resolve_s3 = true
+s3_prefix = "parsly-v4"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=dev"
+image_repositories = []
+
+[dev.deploy.parameters]
+stack_name = "parsly-v4-dev"
+parameter_overrides = "Environment=dev"
+
+[staging.deploy.parameters]
+stack_name = "parsly-v4-staging"
+parameter_overrides = "Environment=staging"
+
+[prod.deploy.parameters]
+stack_name = "parsly-v4-prod"
+parameter_overrides = "Environment=prod"
+confirm_changeset = true
+disable_rollback = false

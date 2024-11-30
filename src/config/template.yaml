@@ -1,0 +1,37 @@
+#!/bin/bash
+
+mkdir -p parsly-v4 && cd parsly-v4
+
+# Create template.yaml
+cat > template.yaml << 'EOL'
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Parsly-v4 Medical Content Generation System
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 300
+    MemorySize: 1024
+
+Resources:
+  ContentGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/backend/functions/content_generator/
+      Handler: handler.lambda_handler
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /generate
+            Method: post
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Cors:
+        AllowMethods: "'POST, GET, OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
