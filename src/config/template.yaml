@@ -1,25 +1,46 @@
-#!/bin/bash
-
-mkdir -p parsly-v4 && cd parsly-v4
-
-# Create template.yaml
-cat > template.yaml << 'EOL'
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Parsly-v4 Medical Content Generation System
 
 Globals:
   Function:
-    Runtime: python3.9
+    Runtime: python3.10
     Timeout: 300
     MemorySize: 1024
+  Api:
+    OpenApiVersion: '2.0'
+    Cors:
+      AllowMethods: "'POST, GET, OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization'"
+      AllowOrigin: "'*'"
 
 Resources:
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub parsly-v4-docs-${AWS::AccountId}
+      VersioningConfiguration:
+        Status: Enabled
+      
   ContentGeneratorFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/backend/functions/content_generator/
+      CodeUri: ../backend/functions/content_generator/
       Handler: handler.lambda_handler
+      Environment:
+        Variables:
+          DOCS_BUCKET: !Ref DocumentsBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DocumentsBucket
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - textract:DetectDocumentText  
+                - translate:TranslateText
+              Resource: '*'
       Events:
         ApiEvent:
           Type: Api
@@ -27,11 +48,10 @@ Resources:
             Path: /generate
             Method: post
 
-  ApiGateway:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: dev
-      Cors:
-        AllowMethods: "'POST, GET, OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL 
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev/generate
+  BucketName:
+    Description: S3 bucket for documents
+    Value: !Ref DocumentsBucket
